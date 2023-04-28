@@ -1,0 +1,5 @@
+package mqo
+
+func CalcCoef() {
+
+}
