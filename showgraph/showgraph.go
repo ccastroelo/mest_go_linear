@@ -24,7 +24,7 @@ func (d xy) XY(i int) (x, y float64) {
 	y = d.y[i]
 	return
 }
-func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIndepIdx int) {
+func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIndepIdx int, linha bool) {
 	size := len(varDep)
 	data := xy{
 		x: make([]float64, size),
@@ -34,10 +34,14 @@ func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIn
 		data.y[i] = varDep[i]
 		data.x[i] = varIndep[i][varIndepIdx]
 	}
+	var line *plotter.Function
+	if linha {
 
-	b, a := stat.LinearRegression(data.x, data.y, nil, false)
-	log.Printf("%v*x+%v", a, b)
-	line := plotter.NewFunction(func(x float64) float64 { return a*x + b })
+		b, a := stat.LinearRegression(data.x, data.y, nil, false)
+		log.Printf("%v*x+%v", a, b)
+		_line := plotter.NewFunction(func(x float64) float64 { return a*x + b })
+		line = _line
+	}
 
 	p := plot.New()
 
@@ -48,7 +52,12 @@ func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIn
 	if err != nil {
 		log.Panic(err)
 	}
-	p.Add(scatter, line)
+	if linha {
+
+		p.Add(scatter, line)
+	} else {
+		p.Add(scatter)
+	}
 
 	w, err := p.WriterTo(300, 300, "png")
 	if err != nil {

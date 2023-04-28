@@ -7,11 +7,11 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
 func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []float64, []string, [][]float64, [][]float64, error) {
+
 	f, err := os.Open(fileName)
 	if err != nil {
 		return "", nil, nil, nil, nil, nil, err
@@ -49,7 +49,7 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 	varDepTest := make([]float64, len(testSlice))
 
 	// array que armazenará os headers das colunas das variaveis independente
-	// comprimento = headers sem a primeira coluna (data) e sem a última coluna (variável dependente)
+	// comprimento = headers sem a primeira coluna (pais) e sem a segunda coluna (variável dependente)
 	hVarIndep := make([]string, len(lines[0])-2)
 
 	// variavel que armazenará o header da coluna da variavel dependente
@@ -69,10 +69,10 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 		// carregamento dos headers para o array de header e para a variavel
 		if i == 0 {
 			for j := 0; j < len(line)-2; j++ {
-				hVarIndep[j] = line[j+1]
+				hVarIndep[j] = line[j+2]
 			}
-			// carregado o header da ultima colunas, variavel dependente, para a variavel
-			hVarDep = line[len(line)-1]
+			// carregado o header da segunda coluna, variavel dependente, para a variavel
+			hVarDep = line[1]
 			// pula a linha de hearder
 			continue
 		}
@@ -80,7 +80,7 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 		// Inicializa a segunda dimensão do arrays de teste e de treinamento das variaveis independente
 		if i == testSlice[testIdx] { // verifica se a linha i foi sorteada para ser um registro de teste
 			selectedForTest = true
-			varIndepTest[testIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (data) e ultima (var dependente) colunas
+			varIndepTest[testIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (pais) e ultima (var dependente) colunas
 			// um registro sorteado foi encontrado, se ainda houverem mais registros a serem separados para teste,
 			// incrementa o idx para pegar o número da proxima linha de teste quando o loop voltar
 			if testIdx < len(testSlice)-1 {
@@ -88,51 +88,52 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 			}
 		} else {
 			selectedForTest = false
-			varIndep[trainIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (data) e ultima (var dependente) colunas
+			varIndep[trainIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (pais) e ultima (var dependente) colunas
 			trainIdx++
 		}
 		// laco das colunas da linha i
 		for j, col := range line {
-			// pula a primeira coluna (data)
+			// pula a primeira coluna (pais)
 			if j == 0 {
 				continue
 			}
 			// as colunas de 1 a 4 vieram como string e com virgula no separador decimal
 			// então são tratados de forma diferente
-			if j < 5 {
-				s := strings.Replace(col, ",", ".", 1)
-				f, err := strconv.ParseFloat(s, 64)
-				if err != nil {
-					return "", nil, nil, nil, nil, nil, err
-				}
+			/*			if j < 5 {
+						s := strings.Replace(col, ",", ".", 1)
+						f, err := strconv.ParseFloat(s, 64)
+						if err != nil {
+							return "", nil, nil, nil, nil, nil, err
+						}
+						if selectedForTest {
+							varIndepTest[testIdx-1][j-1] = f
+						} else {
+							varIndep[trainIdx-1][j-1] = f
+						}
+					} else {*/
+			f, err := strconv.ParseFloat(col, 64)
+			if err != nil {
+				return "", nil, nil, nil, nil, nil, err
+			}
+			// se for a antes da ultima coluna, é variavel independente
+			// se for a ultima coluna, é variavel dependente
+			// se for um, registro selecionado para ser dado de teste,
+			// é carregado para o seu devido array
+			//if j < len(line)-1 {
+			if j > 1 {
 				if selectedForTest {
-					varIndepTest[testIdx-1][j-1] = f
+					varIndepTest[testIdx-1][j-2] = f
 				} else {
-					varIndep[trainIdx-1][j-1] = f
+					varIndep[trainIdx-1][j-2] = f
 				}
 			} else {
-				f, err := strconv.ParseFloat(col, 64)
-				if err != nil {
-					return "", nil, nil, nil, nil, nil, err
-				}
-				// se for a antes da ultima coluna, é variavel independente
-				// se for a ultima coluna, é variavel dependente
-				// se for um, registro selecionado para ser dado de teste,
-				// é carregado para o seu devido array
-				if j < len(line)-1 {
-					if selectedForTest {
-						varIndepTest[testIdx-1][j-1] = f
-					} else {
-						varIndep[trainIdx-1][j-1] = f
-					}
+				if selectedForTest {
+					varDepTest[testIdx-1] = f
 				} else {
-					if selectedForTest {
-						varDepTest[testIdx-1] = f
-					} else {
-						varDep[trainIdx-1] = f
-					}
+					varDep[trainIdx-1] = f
 				}
 			}
+			//			}
 		}
 	}
 	return hVarDep, varDep, varDepTest, hVarIndep, varIndep, varIndepTest, nil
