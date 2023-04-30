@@ -27,7 +27,7 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 	// e armazena os indices no array abaixo
 	// quando, do parse do arquivo csv, se a linha i estiver no array abaixo, a linha será carregada
 	// para o array de dados de teste
-	testSlice, err := getRandomSliceIdx(len(lines)-2, testSlicePerc)
+	testSlice, err := getRandomSliceIdx(len(lines)-1, testSlicePerc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -64,6 +64,8 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 	// variavel para facilitar o direcionamento do registro, se de teste ou de treinamento
 	selectedForTest := false
 
+	proxIdxTest := -1
+
 	// Loop de leitura das linhas do arquivo csv
 	for i, line := range lines {
 		// carregamento dos headers para o array de header e para a variavel
@@ -77,15 +79,16 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 			continue
 		}
 
+		if testIdx < len(testSlice) {
+			proxIdxTest = testSlice[testIdx]
+		}
 		// Inicializa a segunda dimensão do arrays de teste e de treinamento das variaveis independente
-		if i == testSlice[testIdx] { // verifica se a linha i foi sorteada para ser um registro de teste
+		if i == proxIdxTest { // verifica se a linha i foi sorteada para ser um registro de teste
 			selectedForTest = true
 			varIndepTest[testIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (pais) e ultima (var dependente) colunas
 			// um registro sorteado foi encontrado, se ainda houverem mais registros a serem separados para teste,
 			// incrementa o idx para pegar o número da proxima linha de teste quando o loop voltar
-			if testIdx < len(testSlice)-1 {
-				testIdx++
-			}
+			testIdx++
 		} else {
 			selectedForTest = false
 			varIndep[trainIdx] = make([]float64, len(line)-2) // -2 porque discarta a primeira (pais) e ultima (var dependente) colunas

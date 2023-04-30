@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -24,7 +23,8 @@ func (d xy) XY(i int) (x, y float64) {
 	y = d.y[i]
 	return
 }
-func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIndepIdx int, linha bool) {
+func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, dim int, b0 float64, b1 float64, isTeste bool) {
+	sufixo := ""
 	size := len(varDep)
 	data := xy{
 		x: make([]float64, size),
@@ -32,14 +32,19 @@ func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIn
 	}
 	for i := 0; i < size; i++ {
 		data.y[i] = varDep[i]
-		data.x[i] = varIndep[i][varIndepIdx]
+		data.x[i] = varIndep[i][dim]
 	}
 	var line *plotter.Function
-	if linha {
+	if b0 != 0 && b1 != 0 {
 
-		b, a := stat.LinearRegression(data.x, data.y, nil, false)
-		log.Printf("%v*x+%v", a, b)
-		_line := plotter.NewFunction(func(x float64) float64 { return a*x + b })
+		//		b, a := stat.LinearRegression(data.x, data.y, nil, false)
+		//		log.Printf("%v*x+%v", a, b)
+		//		_line := plotter.NewFunction(func(x float64) float64 { return a*x + b })
+		sufixo = "_treino"
+		if isTeste {
+			sufixo = "_teste"
+		}
+		_line := plotter.NewFunction(func(x float64) float64 { return b1*x + b0 })
 		line = _line
 	}
 
@@ -52,19 +57,20 @@ func Showgraph(varIndep [][]float64, varDep []float64, hVarIndep []string, varIn
 	if err != nil {
 		log.Panic(err)
 	}
-	if linha {
+	if b0 != 0 && b1 != 0 {
 
 		p.Add(scatter, line)
 	} else {
 		p.Add(scatter)
 	}
+	p.Title.Text = hVarIndep[dim] + "_graph" + sufixo
 
 	w, err := p.WriterTo(300, 300, "png")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	g, err := os.Create(hVarIndep[varIndepIdx] + "_graph.png")
+	g, err := os.Create(hVarIndep[dim] + "_graph" + sufixo + ".png")
 	if err != nil {
 		log.Fatalf("Não foi possível criar o arquivo de gráfico")
 	}
