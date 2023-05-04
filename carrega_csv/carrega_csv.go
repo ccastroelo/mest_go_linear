@@ -1,4 +1,4 @@
-package loadfile
+package carrega_csv
 
 import (
 	"encoding/csv"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []float64, []string, [][]float64, [][]float64, error) {
+func CarregaCSV(fileName string, testSlicePerc float64) (string, []float64, []float64, []string, [][]float64, [][]float64, error) {
 
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -118,11 +118,9 @@ func LoadInput(fileName string, testSlicePerc float64) (string, []float64, []flo
 			if err != nil {
 				return "", nil, nil, nil, nil, nil, err
 			}
-			// se for a antes da ultima coluna, é variavel independente
-			// se for a ultima coluna, é variavel dependente
+			// da segunda coluna em diante são variaveis independente
 			// se for um, registro selecionado para ser dado de teste,
 			// é carregado para o seu devido array
-			//if j < len(line)-1 {
 			if j > 1 {
 				if selectedForTest {
 					varIndepTest[testIdx-1][j-2] = f

@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"linear/avaliacao_validacao"
-	"linear/loadfile"
+	"linear/carrega_csv"
+	"linear/gradiente"
+
 	"linear/mqo"
 	"linear/showgraph"
 	"os"
@@ -17,8 +19,33 @@ func main() {
 	var varDepTest, varDep, coefs []float64
 	var varIndep, varIndepTest [][]float64
 	var dims []int
-
 	sair := false
+
+	// debug
+	/*
+		_hVarDep, _varDep, _varDepTest, _hVarIndep, _varIndep, _varIndepTest, err := carrega_csv.CarregaCSV("./assets/teste.csv", 0)
+		if err != nil {
+			fmt.Println(err)
+		}
+		hVarDep = _hVarDep
+		varDep = _varDep
+		varDepTest = _varDepTest
+		hVarIndep = _hVarIndep
+		varIndep = _varIndep
+		varIndepTest = _varIndepTest
+		dims = []int{0, 1}
+		passos := 1000
+		taxa := 0.00003
+		_coefs := gradiente.CalcGradient(varIndep, varDep, dims, passos, taxa)
+		coefs = _coefs
+		fmt.Println("")
+		imprimeFormula(hVarDep, hVarIndep, dims, coefs)
+		fmt.Println("")
+		sair = true
+
+	*/
+	// fim debug
+
 	for !sair {
 		fmt.Println("*******************************************************************************************")
 		fmt.Println("Opções: ")
@@ -27,6 +54,7 @@ func main() {
 		fmt.Println("2 > Gerar gráficos de dispersão dos dados de treino")
 		fmt.Println("3 > Calcula o modelo - Linear Simples")
 		fmt.Println("4 > Calcula o modelo - Linear Multiplo")
+		//		fmt.Println("5 > Calcula o modelo - Linear Multiplo com Gradiente Descendente")
 		fmt.Println("5 > Avaliação do modelo")
 		fmt.Println("6 > Validação do modelo (+ gráfico se linear simples)")
 
@@ -43,39 +71,63 @@ func main() {
 			fmt.Println("")
 			fmt.Println(">> Carregar Arquivo")
 			fmt.Println("")
-			fmt.Println("Qual o nome do arquivo csv?")
+			fmt.Println("Qual o nome do arquivo .csv?")
 			arq := bufio.NewScanner(os.Stdin)
 			arq.Scan()
 			fmt.Println("")
-			fmt.Println("Qual o percentual utilizado para teste? Formato: 99")
-			opcao := bufio.NewScanner(os.Stdin)
-			opcao.Scan()
-			testPerc, err := strconv.ParseFloat(opcao.Text(), 64)
+			fmt.Println("Arquivo de teste separado? (s/n)")
+			opcaoTeste := bufio.NewScanner(os.Stdin)
+			opcaoTeste.Scan()
+			if opcaoTeste.Text() == "S" || opcaoTeste.Text() == "s" {
+				fmt.Println("Qual o nome do arquivo de teste .csv?")
+				arqTeste := bufio.NewScanner(os.Stdin)
+				arqTeste.Scan()
+				_hVarDep, _varDep, _, _hVarIndep, _varIndep, _, err := carrega_csv.CarregaCSV("./assets/"+arq.Text()+".csv", 0)
+				if err != nil {
+					fmt.Println(err)
+				}
+				_, _varDepTest, _, _, _varIndepTest, _, err := carrega_csv.CarregaCSV("./assets/"+arqTeste.Text()+".csv", 0)
+				if err != nil {
+					fmt.Println(err)
+				}
+				hVarDep = _hVarDep
+				varDep = _varDep
+				varDepTest = _varDepTest
+				hVarIndep = _hVarIndep
+				varIndep = _varIndep
+				varIndepTest = _varIndepTest
+			} else {
+				fmt.Println("")
+				fmt.Println("Qual o percentual utilizado para teste? Formato: 99")
+				opcao := bufio.NewScanner(os.Stdin)
+				opcao.Scan()
+				testPerc, err := strconv.ParseFloat(opcao.Text(), 64)
 
-			_hVarDep, _varDep, _varDepTest, _hVarIndep, _varIndep, _varIndepTest, err := loadfile.LoadInput("./assets/"+arq.Text(), testPerc/100)
-			if err != nil {
-				fmt.Println(err)
-			}
-			hVarDep = _hVarDep
-			varDep = _varDep
-			varDepTest = _varDepTest
-			hVarIndep = _hVarIndep
-			varIndep = _varIndep
-			if err != nil {
-				fmt.Println(err)
-			}
-			varIndepTest = _varIndepTest
+				_hVarDep, _varDep, _varDepTest, _hVarIndep, _varIndep, _varIndepTest, err := carrega_csv.CarregaCSV("./assets/"+arq.Text()+".csv", testPerc/100)
+				if err != nil {
+					fmt.Println(err)
+				}
+				hVarDep = _hVarDep
+				varDep = _varDep
+				varDepTest = _varDepTest
+				hVarIndep = _hVarIndep
+				varIndep = _varIndep
+				varIndepTest = _varIndepTest
 
+			}
 			coefs = []float64{}
 			fmt.Println("")
 			fmt.Println("Arquivos particionados")
 			fmt.Println("Arquivo de treino: ", len(varIndep), " linhas")
 			fmt.Println("Arquivo de teste: ", len(varIndepTest), "linhas")
 			fmt.Println("Qtd Variáveis independentes: ", len(varIndep[0]), " colunas")
-
-			//fmt.Println(hVarIndep[0])
-			//fmt.Println(varIndep[0])
+			listaDimensoes(hVarIndep)
 		case opcao.Text() == "2":
+			if len(hVarIndep) == 0 {
+				fmt.Println("")
+				fmt.Println(">> Arquivo não carregado")
+				break
+			}
 			fmt.Println("Gerando gráficos de dispersão dos dados de treino")
 			for i := 0; i < len(varIndep[0]); i++ {
 				showgraph.Showgraph(varIndep, varDep, hVarIndep, i, 0, 0, false)
@@ -83,6 +135,11 @@ func main() {
 			fmt.Println("Gráficos gerados")
 			fmt.Println("")
 		case opcao.Text() == "3":
+			if len(hVarIndep) == 0 {
+				fmt.Println("")
+				fmt.Println(">> Arquivo não carregado")
+				break
+			}
 			fmt.Println("")
 			fmt.Println(">> Calcular regressao linear simples")
 			fmt.Println("")
@@ -95,7 +152,7 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
-			_coefs := mqo.CalcCoef(varIndep, varDep, dim)
+			_coefs := mqo.MqoBasico(varIndep, varDep, dim)
 			coefs = _coefs
 			dims = []int{dim}
 			imprimeFormula(hVarDep, hVarIndep, dims, coefs)
@@ -104,6 +161,11 @@ func main() {
 			fmt.Println("Gráfico atualizado")
 			fmt.Println("")
 		case opcao.Text() == "4":
+			if len(hVarIndep) == 0 {
+				fmt.Println("")
+				fmt.Println(">> Arquivo não carregado")
+				break
+			}
 			fmt.Println("")
 			fmt.Println(">> Calcula regressão linear multipla")
 			fmt.Println("")
@@ -126,7 +188,53 @@ func main() {
 				_dims = append(_dims, dim)
 			}
 			dims = _dims
-			_coefs := mqo.CalcCoefViaMatriz(varIndep, varDep, dims)
+			_coefs := mqo.MqoMatriz(varIndep, varDep, dims)
+			coefs = _coefs
+			fmt.Println("")
+			imprimeFormula(hVarDep, hVarIndep, dims, coefs)
+			fmt.Println("")
+		case opcao.Text() == "desativado do menu":
+			fmt.Println("")
+			fmt.Println(">> Calcula regressão linear multipla com gradiente descendente")
+			fmt.Println("")
+			fmt.Println("Informe as dimensões (informe o número <enter> para finalizar):")
+			listaDimensoes(hVarIndep)
+			fmt.Println(">")
+			_dims := make([]int, 0, len(hVarIndep))
+			sair := false
+			for !sair {
+				opcao := bufio.NewScanner(os.Stdin)
+				opcao.Scan()
+				if opcao.Text() == "" {
+					sair = true
+					continue
+				}
+				dim, err := strconv.Atoi(opcao.Text())
+				if err != nil {
+					fmt.Println(err)
+				}
+				_dims = append(_dims, dim)
+			}
+			dims = _dims
+			fmt.Println("")
+			fmt.Println("Qual a quantidade de iteracoes?")
+			_passos := bufio.NewScanner(os.Stdin)
+			_passos.Scan()
+			passos, err := strconv.Atoi(_passos.Text())
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			fmt.Println("")
+			fmt.Println("Qual a taxa de aprendizagem?")
+			_taxa := bufio.NewScanner(os.Stdin)
+			_taxa.Scan()
+			taxa, err := strconv.ParseFloat(_taxa.Text(), 64)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			_coefs := gradiente.CalcGradient(varIndep, varDep, dims, passos, taxa)
 			coefs = _coefs
 			fmt.Println("")
 			imprimeFormula(hVarDep, hVarIndep, dims, coefs)
